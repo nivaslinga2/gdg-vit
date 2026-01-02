@@ -13,7 +13,7 @@ sys.path.append(os.getcwd())
 # Import necessary functions from your source code
 try:
     from src.utilities import generate_regular_3_graph, max_cut_gurobi, get_cost, Graph, brute_force_max_cut
-    from src.QAOA import qaoa
+    from src.QAOA_qiskit import qaoa
 except ImportError:
     st.error("Could not import modules from 'src'. Make sure you are running this from the root directory 'gdg_vit'.")
     st.stop()

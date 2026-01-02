@@ -31,7 +31,7 @@ _ibm_service = None
 def get_ibm_service(token: Optional[str] = None) -> Optional['QiskitRuntimeService']:
     """
     Get or create IBM Quantum service connection.
-    Token can be passed directly or set via IBM_QUANTUM_TOKEN environment variable.
+    Token can be passed directly, via Streamlit secrets, or via IBM_QUANTUM_TOKEN env var.
     """
     global _ibm_service
     
@@ -41,8 +41,20 @@ def get_ibm_service(token: Optional[str] = None) -> Optional['QiskitRuntimeServi
     if _ibm_service is not None:
         return _ibm_service
     
-    # Try to get token from parameter, env var, or saved credentials
-    api_token = token or os.environ.get('IBM_QUANTUM_TOKEN')
+    # Try to get token from: 1) parameter, 2) Streamlit secrets, 3) env var
+    api_token = token
+    
+    if not api_token:
+        # Try Streamlit secrets
+        try:
+            import streamlit as st
+            api_token = st.secrets.get("IBM_QUANTUM_TOKEN")
+        except:
+            pass
+    
+    if not api_token:
+        # Try environment variable
+        api_token = os.environ.get('IBM_QUANTUM_TOKEN')
     
     try:
         if api_token:
@@ -54,7 +66,6 @@ def get_ibm_service(token: Optional[str] = None) -> Optional['QiskitRuntimeServi
             _ibm_service = QiskitRuntimeService(channel="ibm_quantum")
         return _ibm_service
     except Exception as e:
-        print(f"Could not connect to IBM Quantum: {e}")
         return None
 
 

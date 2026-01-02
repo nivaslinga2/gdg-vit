@@ -5,7 +5,14 @@ import numpy as np
 import math
 import networkx as nx
 from networkx.algorithms.community import greedy_modularity_communities
-from gurobipy import Model, GRB
+# Try to import Gurobi (commercial solver) - fallback if not available
+try:
+    from gurobipy import Model, GRB
+    GUROBI_AVAILABLE = True
+except ImportError:
+    GUROBI_AVAILABLE = False
+    Model = None
+    GRB = None
 
 class Graph():
     '''
@@ -175,7 +182,17 @@ def get_cost(x_vec, graph):
 def max_cut_gurobi(graph):
     """
     Use Gurobi algorithm to solve the max-cut problem.
+    Falls back to brute force if Gurobi is not available.
     """
+    if not GUROBI_AVAILABLE:
+        # Fallback to brute force for small graphs
+        n = len(list(graph.nodes()))
+        if n <= 22:
+            return brute_force_max_cut(graph)
+        else:
+            # Use greedy approximation for larger graphs
+            return greedy_max_cut(graph)
+    
     model = Model("max_cut")
     model.setParam('OutputFlag', 0)
 
@@ -196,6 +213,73 @@ def max_cut_gurobi(graph):
     else:
         print("No optimal solution found.")
         return None
+
+def greedy_max_cut(graph):
+    """
+    Greedy approximation for Max-Cut when Gurobi is not available.
+    """
+    import random
+    nodes = list(graph.nodes())
+    random.shuffle(nodes)
+    
+    set_a = set()
+    set_b = set()
+    
+    for node in nodes:
+        # Count edges to each set
+        to_a = sum(1 for neighbor in graph.neighbors(node) if neighbor in set_a)
+        to_b = sum(1 for neighbor in graph.neighbors(node) if neighbor in set_b)
+        
+        # Put node in set that maximizes cut edges
+        if to_a >= to_b:
+            set_b.add(node)
+        else:
+            set_a.add(node)
+    
+    # Calculate cut value
+    cut_val = sum(1 for u, v in graph.edges() if (u in set_a) != (v in set_a))
+    print(f'Max-Cut Value (Greedy): {cut_val}')
+    return cut_val, [set_a, set_b]
+
+def brute_force_max_cut(graph):
+    """
+    Solves Max-Cut using Brute Force (Iterating all 2^n partitions).
+    Only specific for small n (e.g. n <= 20).
+    """
+    import itertools
+    nodes = list(graph.nodes())
+    n = len(nodes)
+    if n > 22:
+        return -1, [set(), set()] # Too large
+    
+    max_cut_val = -1
+    best_partition = None
+    
+    # Iterate through all possible partitions (2^n)
+    # We only need to go up to 2^(n-1) due to symmetry, but full scan is fine for 'brute force' demo
+    for i in range(1 << n):
+        # Decode bin string
+        subset_0 = set()
+        subset_1 = set()
+        for j in range(n):
+            if (i >> j) & 1:
+                subset_1.add(nodes[j])
+            else:
+                subset_0.add(nodes[j])
+        
+        # Calculate cut
+        cut_val = 0
+        for u, v in graph.edges():
+            u_in_1 = u in subset_1
+            v_in_1 = v in subset_1
+            if u_in_1 != v_in_1:
+                cut_val += 1
+        
+        if cut_val > max_cut_val:
+            max_cut_val = cut_val
+            best_partition = [subset_0, subset_1]
+            
+    return max_cut_val, best_partition
 
 def generate_regular_3_graph(n_nodes, seed):
     """

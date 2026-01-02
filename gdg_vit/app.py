@@ -12,7 +12,7 @@ sys.path.append(os.getcwd())
 
 # Import necessary functions from your source code
 try:
-    from src.utilities import generate_regular_3_graph, max_cut_gurobi, get_cost, Graph
+    from src.utilities import generate_regular_3_graph, max_cut_gurobi, get_cost, Graph, brute_force_max_cut
     from src.QAOA import qaoa
 except ImportError:
     st.error("Could not import modules from 'src'. Make sure you are running this from the root directory 'gdg_vit'.")
@@ -32,7 +32,7 @@ st.sidebar.header("Configuration")
 # Graph Settings
 st.sidebar.subheader("Graph Topology")
 graph_type = st.sidebar.selectbox("Type", ["Random 3-Regular", "Ring", "Star", "Erdos-Renyi"])
-n_nodes = st.sidebar.slider("Nodes (Qubits)", min_value=4, max_value=24, value=10, step=1)
+n_nodes = st.sidebar.slider("Nodes (Qubits)", min_value=4, max_value=30, value=10, step=1)
 if graph_type == "Erdos-Renyi":
     p_prob = st.sidebar.slider("Edge Probability", 0.1, 1.0, 0.5)
 
@@ -44,6 +44,9 @@ st.sidebar.subheader("Quantum Parameters")
 num_layers = st.sidebar.slider("QAOA Layers (Depth)", min_value=1, max_value=5, value=1)
 # Restrict seed to a safe 32-bit integer range to avoid overflow
 seed = st.sidebar.number_input("Random Seed", value=42, step=1, max_value=2**31 - 1)
+
+st.sidebar.subheader("Classical Benchmarks")
+classical_method = st.sidebar.selectbox("Classical Solver", ["Gurobi (Optimal)", "Brute Force (Exponential)"])
 
 run_btn = st.sidebar.button("🚀 Run Quantum Simulation", type="primary")
 
@@ -166,7 +169,14 @@ if run_btn:
     
     # Classical
     start_g = time.time()
-    gurobi_val, gurobi_partition = max_cut_gurobi(G_nx)
+    if classical_method == "Brute Force (Exponential)":
+        if n_nodes > 22:
+             st.warning("⚠️ Brute Force is too slow for N > 22! Switching to Gurobi automatically.")
+             gurobi_val, gurobi_partition = max_cut_gurobi(G_nx)
+        else:
+             gurobi_val, gurobi_partition = brute_force_max_cut(G_nx)
+    else:
+        gurobi_val, gurobi_partition = max_cut_gurobi(G_nx)
     end_g = time.time()
     
     # Quantum

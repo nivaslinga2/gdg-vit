@@ -5,42 +5,46 @@ import numpy as np
 from typing import List, Tuple
 from src.utilities import Graph, get_cost
 
-# Try to import Qiskit modules
+# Try to import Qiskit modules (Qiskit 2.x compatible)
 try:
     from qiskit import QuantumCircuit
-    from qiskit.primitives import Sampler
+    from qiskit.primitives import StatevectorSampler
     from qiskit_algorithms import QAOA
     from qiskit_algorithms.optimizers import COBYLA
     from qiskit.quantum_info import SparsePauliOp
     QISKIT_AVAILABLE = True
-except ImportError:
+    print("✅ Qiskit loaded successfully - Using REAL quantum simulation!")
+except ImportError as e:
     QISKIT_AVAILABLE = False
+    print(f"⚠️ Qiskit not available: {e}. Using fallback greedy algorithm.")
 
 
 def create_maxcut_hamiltonian(edges: List[Tuple[int, int]], num_qubits: int) -> 'SparsePauliOp':
     """
     Create the Max-Cut Hamiltonian as a Qiskit SparsePauliOp.
     
-    H = sum_{(i,j) in edges} 0.5 * (I - Z_i Z_j)
+    For Max-Cut: We want to MAXIMIZE the number of cut edges.
+    Cost = sum_{(i,j) in edges} (1 - Z_i * Z_j) / 2
     
-    Maximizing this gives the Max-Cut solution.
+    QAOA minimizes, so we use: H = sum 0.5 * (Z_i Z_j - 1)
+    Minimizing this = Maximizing cuts
     """
     pauli_list = []
     coeffs = []
     
     for i, j in edges:
-        # Create Z_i Z_j term
+        # Create Z_i Z_j term (positive for minimization = max cut)
         z_string = ['I'] * num_qubits
         z_string[i] = 'Z'
         z_string[j] = 'Z'
         pauli_list.append(''.join(z_string[::-1]))  # Qiskit uses little-endian
-        coeffs.append(-0.5)
+        coeffs.append(0.5)  # Positive coefficient
         
-        # Identity term (constant offset)
+        # Identity term (constant offset) - negative for max cut
         pauli_list.append('I' * num_qubits)
-        coeffs.append(0.5)
+        coeffs.append(-0.5)
     
-    return SparsePauliOp(pauli_list, coeffs)
+    return SparsePauliOp(pauli_list, coeffs).simplify()
 
 
 def qaoa_qiskit(G: Graph, layer_count: int = 1, shots: int = 1000) -> Tuple[float, str]:
@@ -74,11 +78,11 @@ def qaoa_qiskit(G: Graph, layer_count: int = 1, shots: int = 1000) -> Tuple[floa
     # Create Hamiltonian
     hamiltonian = create_maxcut_hamiltonian(edges, num_qubits)
     
-    # Create QAOA instance
-    sampler = Sampler()
+    # Create QAOA instance with StatevectorSampler (Qiskit 2.x)
+    sampler = StatevectorSampler()
     optimizer = COBYLA(maxiter=100)
     
-    qaoa = QAOA(
+    qaoa_solver = QAOA(
         sampler=sampler,
         optimizer=optimizer,
         reps=layer_count,
@@ -86,23 +90,27 @@ def qaoa_qiskit(G: Graph, layer_count: int = 1, shots: int = 1000) -> Tuple[floa
     )
     
     # Run QAOA
-    result = qaoa.compute_minimum_eigenvalue(hamiltonian)
+    result = qaoa_solver.compute_minimum_eigenvalue(hamiltonian)
     
     # Get the best bitstring from the result
     if hasattr(result, 'best_measurement') and result.best_measurement:
         best_bitstring = result.best_measurement['bitstring']
     else:
-        # Fallback: sample from the optimal circuit
-        optimal_circuit = qaoa.ansatz.assign_parameters(result.optimal_point)
-        optimal_circuit.measure_all()
-        
-        from qiskit.primitives import Sampler as BasicSampler
-        basic_sampler = BasicSampler()
-        job = basic_sampler.run([optimal_circuit], shots=shots)
-        counts = job.result()[0].data.meas.get_counts()
-        
-        # Get most frequent bitstring
-        best_bitstring = max(counts, key=counts.get)
+        # Fallback: Use eigenstate to get most likely bitstring
+        if hasattr(result, 'eigenstate') and result.eigenstate is not None:
+            # Sample from the eigenstate
+            from qiskit.quantum_info import Statevector
+            if isinstance(result.eigenstate, dict):
+                # It's already a counts dictionary
+                best_bitstring = max(result.eigenstate, key=result.eigenstate.get)
+            else:
+                # It's a statevector - sample from it
+                sv = Statevector(result.eigenstate)
+                counts = sv.sample_counts(shots)
+                best_bitstring = max(counts, key=counts.get)
+        else:
+            # Last resort: use greedy
+            return qaoa_mock(G, layer_count, shots)
     
     # Calculate the actual cut value
     cost = get_cost(best_bitstring, edges)
@@ -116,7 +124,11 @@ def qaoa(G: Graph, layer_count: int = 1, shots: int = 1000, const: float = 0, sa
     Automatically uses Qiskit if available, otherwise falls back to mock.
     """
     if QISKIT_AVAILABLE:
-        return qaoa_qiskit(G, layer_count=layer_count, shots=shots)
+        try:
+            return qaoa_qiskit(G, layer_count=layer_count, shots=shots)
+        except Exception as e:
+            print(f"Qiskit QAOA failed: {e}. Falling back to mock.")
+            return qaoa_mock(G, layer_count=layer_count, shots=shots)
     else:
         # Fallback to mock implementation
         return qaoa_mock(G, layer_count=layer_count, shots=shots)

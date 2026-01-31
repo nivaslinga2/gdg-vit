@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum QAOA Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>⚛️ QAOA Solver</h1>
+            </div>
+            
+            <form id="configForm">
+                <div class="control-group">
+                    <label>Graph Topology</label>
+                    <select id="graph_type" name="graph_type">
+                        <option value="Random 3-Regular">Random 3-Regular</option>
+                        <option value="Ring">Ring</option>
+                        <option value="Star">Star</option>
+                        <option value="Erdos-Renyi">Erdos-Renyi</option>
+                    </select>
+                </div>
+
+                <div class="control-group" id="prob-group" style="display:none;">
+                    <label>Edge Probability</label>
+                    <input type="range" id="p_prob" name="p_prob" min="0.1" max="1.0" step="0.1" value="0.5">
+                    <span id="p_prob_val">0.5</span>
+                </div>
+
+                <div class="control-group">
+                    <label>Nodes (Qubits)</label>
+                    <input type="range" id="n_nodes" name="n_nodes" min="4" max="20" value="10">
+                    <span id="n_nodes_val">10</span>
+                </div>
+
+                <div class="control-group">
+                    <label>QAOA Layers</label>
+                    <input type="number" id="num_layers" name="num_layers" min="1" max="5" value="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Random Seed</label>
+                    <input type="number" id="seed" name="seed" value="42">
+                </div>
+
+                <div class="control-group">
+                    <label>Backend</label>
+                    <select id="quantum_backend" name="quantum_backend">
+                        <option value="simulator (local)">Simulator (Local)</option>
+                        <option value="ibm_brisbane">IBM Brisbane</option>
+                        <option value="ibm_kyoto">IBM Kyoto</option>
+                        <option value="ibm_osaka">IBM Osaka</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>IBM Token (Optional)</label>
+                    <input type="password" id="ibm_token" name="ibm_token" placeholder="For real hardware">
+                </div>
+
+                <div class="control-group">
+                    <label>Classical Solver</label>
+                    <select id="classical_method" name="classical_method">
+                        <option value="Greedy (Approximate)">Greedy (Approximate)</option>
+                        <option value="Brute Force (Exponential)">Brute Force (Exponential)</option>
+                        <option value="Gurobi (Optimal)">Gurobi (Optimal)</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="runBtn" class="primary-btn">🚀 Run Simulation</button>
+            </form>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header>
+                <h2>Quantum Landscape: QAOA Max-Cut Solver</h2>
+                <p>Explore how Quantum Approximate Optimization Algorithm solves the Max-Cut problem.</p>
+            </header>
+
+            <div id="loading" class="hidden">
+                <div class="spinner"></div>
+                <p>Simulating Quantum Circuit...</p>
+            </div>
+
+            <div id="results-area" class="hidden">
+                <!-- Metrics -->
+                <div class="metrics-grid">
+                    <div class="card metric">
+                        <h3>Quantum State |ψ⟩</h3>
+                        <div class="value code" id="bitstring-val">|00000⟩</div>
+                    </div>
+                    <div class="card metric">
+                        <h3>Classical Cost</h3>
+                        <div class="value" id="c-cost-val">0</div>
+                        <div class="sub" id="c-time-val">0s</div>
+                    </div>
+                    <div class="card metric">
+                        <h3>Quantum Cost</h3>
+                        <div class="value" id="q-cost-val">0</div>
+                        <div class="sub" id="q-time-val">0s</div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="perf">📊 Performance</button>
+                    <button class="tab-btn" data-tab="graph">🕸️ Graphs</button>
+                    <button class="tab-btn" data-tab="land">🏔️ Landscape</button>
+                </div>
+
+                <div class="tab-content active" id="perf">
+                    <div id="plot-performance" class="plot-container"></div>
+                </div>
+
+                <div class="tab-content" id="graph">
+                    <div class="split-view">
+                        <div>
+                            <h4>Classical Partition</h4>
+                            <div id="plot-classical" class="plot-container"></div>
+                        </div>
+                        <div>
+                            <h4>Quantum Partition</h4>
+                            <div id="plot-quantum" class="plot-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="land">
+                    <div id="plot-landscape" class="plot-container"></div>
+                </div>
+            </div>
+            
+            <div id="intro-placeholder">
+                <div class="placeholder-content">
+                    <h3>Ready to Explore?</h3>
+                    <p>Configure the parameters on the left and click Run.</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

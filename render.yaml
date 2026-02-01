@@ -14,4 +14,4 @@ services:
     name: gdg-vit-cron
     env: python
     schedule: "0 0 * * *"   # Runs every day at midnight. Change this to customize!
-    command: echo "Cron job executed successfully"
+    startCommand: echo "Cron job executed successfully"

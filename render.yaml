@@ -9,9 +9,9 @@ services:
       - key: PYTHON_VERSION
         value: 3.9.18
 
-cronJobs:
   # Your Cron Job (Scheduled Task)
-  - name: gdg-vit-cron
+  - type: cron
+    name: gdg-vit-cron
     env: python
     schedule: "0 0 * * *"   # Runs every day at midnight. Change this to customize!
     command: echo "Cron job executed successfully"

@@ -1,0 +1,17 @@
+services:
+  # Your Web Service (Website)
+  - type: web
+    name: gdg-vit-web
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app -b 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.18
+
+cronJobs:
+  # Your Cron Job (Scheduled Task)
+  - name: gdg-vit-cron
+    env: python
+    schedule: "0 0 * * *"   # Runs every day at midnight. Change this to customize!
+    command: echo "Cron job executed successfully"

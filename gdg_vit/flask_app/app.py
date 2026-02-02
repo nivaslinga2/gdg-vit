@@ -238,8 +238,35 @@ def run_simulation():
         'actual_n': actual_n,
         'plots': plots
     }
+    
+    # --- Firebase Integration ---
+    try:
+        from src.firebase_handler import save_experiment_result
+        save_experiment_result(results)
+    except Exception as e:
+        print(f"Firebase save wrapper failed: {e}")
 
     return jsonify(results)
+
+@app.route('/history', methods=['GET'])
+def get_history():
+    try:
+        from src.firebase_handler import init_firebase
+        db = init_firebase()
+        if not db:
+            return jsonify([])
+        
+        # Get last 10 experiments
+        docs = db.collection('experiments').order_by('timestamp', direction='DESCENDING').limit(10).stream()
+        history = []
+        for doc in docs:
+            d = doc.to_dict()
+            # Remove plots to save bandwidth
+            if 'plots' in d: del d['plots']
+            history.append(d)
+        return jsonify(history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

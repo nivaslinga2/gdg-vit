@@ -1,0 +1,8 @@
+firebase_key.json
+serviceAccountKey.json
+*.pyc
+__pycache__/
+env/
+venv/
+.env
+.DS_Store

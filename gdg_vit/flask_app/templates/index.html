@@ -1,153 +1,259 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum QAOA Explorer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <title>Firebase Studio - Quantum Explorer</title>
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Material Symbols -->
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 </head>
+
 <body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="logo">
-                <h1>⚛️ QAOA Solver</h1>
-            </div>
-            
+
+    <!-- Left Navigation Drawer -->
+    <aside class="sidebar">
+        <div class="logo-area">
+            <span class="material-symbols-outlined logo-icon" style="color:#FFA000">firebase</span>
+            <span class="logo-text">Quantum<span style="font-weight:300">Lab</span></span>
+        </div>
+
+        <div class="scroll-area">
             <form id="configForm">
-                <div class="control-group">
-                    <label>Graph Topology</label>
-                    <select id="graph_type" name="graph_type">
-                        <option value="Random 3-Regular">Random 3-Regular</option>
-                        <option value="Ring">Ring</option>
-                        <option value="Star">Star</option>
-                        <option value="Erdos-Renyi">Erdos-Renyi</option>
-                    </select>
+
+                <div class="form-section">
+                    <span class="section-title">Graph Configuration</span>
+
+                    <div class="input-group">
+                        <label class="input-label">Topology</label>
+                        <select id="graph_type" name="graph_type" class="md-select">
+                            <option value="Random 3-Regular">Random 3-Regular</option>
+                            <option value="Ring">Ring</option>
+                            <option value="Star">Star</option>
+                            <option value="Erdos-Renyi">Erdos-Renyi</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group" id="prob-group" style="display:none;">
+                        <div class="md-slider-container">
+                            <div class="slider-label-row">
+                                <span>Edge Probability</span>
+                                <span id="p_prob_val">0.5</span>
+                            </div>
+                            <input type="range" id="p_prob" name="p_prob" min="0.1" max="1.0" step="0.1" value="0.5">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="md-slider-container">
+                            <div class="slider-label-row">
+                                <span>Nodes (Qubits)</span>
+                                <span id="n_nodes_val">10</span>
+                            </div>
+                            <input type="range" id="n_nodes" name="n_nodes" min="4" max="20" value="10">
+                        </div>
+                    </div>
                 </div>
 
-                <div class="control-group" id="prob-group" style="display:none;">
-                    <label>Edge Probability</label>
-                    <input type="range" id="p_prob" name="p_prob" min="0.1" max="1.0" step="0.1" value="0.5">
-                    <span id="p_prob_val">0.5</span>
+                <div class="form-section">
+                    <span class="section-title">Quantum Parameters</span>
+
+                    <div class="input-group">
+                        <div class="md-slider-container">
+                            <div class="slider-label-row">
+                                <span>QAOA Layers (p)</span>
+                                <span id="num_layers_val">1</span>
+                            </div>
+                            <input type="range" id="num_layers" name="num_layers" min="1" max="5" value="1">
+                        </div>
+                    </div>
                 </div>
 
-                <div class="control-group">
-                    <label>Nodes (Qubits)</label>
-                    <input type="range" id="n_nodes" name="n_nodes" min="4" max="20" value="10">
-                    <span id="n_nodes_val">10</span>
+                <div class="form-section">
+                    <span class="section-title">Backend & Solver</span>
+
+                    <div class="input-group">
+                        <label class="input-label">Backend</label>
+                        <select id="quantum_backend" name="quantum_backend" class="md-select">
+                            <option value="simulator (local)">Simulator (Local)</option>
+                            <option value="ibm_brisbane">IBM Brisbane</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">Classical Method</label>
+                        <select id="classical_method" name="classical_method" class="md-select">
+                            <option value="Greedy (Approximate)">Greedy (Approximate)</option>
+                            <option value="Gurobi (Optimal)">Gurobi (Optimal)</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="control-group">
-                    <label>QAOA Layers</label>
-                    <input type="number" id="num_layers" name="num_layers" min="1" max="5" value="1">
-                </div>
+                <button type="submit" id="runBtn" class="btn-primary">
+                    <span class="material-symbols-outlined">rocket_launch</span>
+                    Run Simulation
+                </button>
 
-                <div class="control-group">
-                    <label>Random Seed</label>
-                    <input type="number" id="seed" name="seed" value="42">
-                </div>
-
-                <div class="control-group">
-                    <label>Backend</label>
-                    <select id="quantum_backend" name="quantum_backend">
-                        <option value="simulator (local)">Simulator (Local)</option>
-                        <option value="ibm_brisbane">IBM Brisbane</option>
-                        <option value="ibm_kyoto">IBM Kyoto</option>
-                        <option value="ibm_osaka">IBM Osaka</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>IBM Token (Optional)</label>
-                    <input type="password" id="ibm_token" name="ibm_token" placeholder="For real hardware">
-                </div>
-
-                <div class="control-group">
-                    <label>Classical Solver</label>
-                    <select id="classical_method" name="classical_method">
-                        <option value="Greedy (Approximate)">Greedy (Approximate)</option>
-                        <option value="Brute Force (Exponential)">Brute Force (Exponential)</option>
-                        <option value="Gurobi (Optimal)">Gurobi (Optimal)</option>
-                    </select>
-                </div>
-
-                <button type="submit" id="runBtn" class="primary-btn">🚀 Run Simulation</button>
             </form>
-        </aside>
+        </div>
+    </aside>
 
-        <!-- Main Content -->
-        <main class="content">
-            <header>
-                <h2>Quantum Landscape: QAOA Max-Cut Solver</h2>
-                <p>Explore how Quantum Approximate Optimization Algorithm solves the Max-Cut problem.</p>
-            </header>
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top App Bar -->
+        <div class="top-app-bar">
+            <div class="app-title">Experiment Dashboard</div>
 
-            <div id="loading" class="hidden">
-                <div class="spinner"></div>
-                <p>Simulating Quantum Circuit...</p>
+            <nav class="tab-bar">
+                <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+                <button class="tab-btn" data-tab="history">Firebase History</button>
+            </nav>
+
+            <div class="user-profile">
+                <!-- Placeholder for user avatar -->
+                <span class="material-symbols-outlined" style="opacity:0.5">account_circle</span>
             </div>
+        </div>
 
-            <div id="results-area" class="hidden">
-                <!-- Metrics -->
-                <div class="metrics-grid">
-                    <div class="card metric">
-                        <h3>Quantum State |ψ⟩</h3>
-                        <div class="value code" id="bitstring-val">|00000⟩</div>
-                    </div>
-                    <div class="card metric">
-                        <h3>Classical Cost</h3>
-                        <div class="value" id="c-cost-val">0</div>
-                        <div class="sub" id="c-time-val">0s</div>
-                    </div>
-                    <div class="card metric">
-                        <h3>Quantum Cost</h3>
-                        <div class="value" id="q-cost-val">0</div>
-                        <div class="sub" id="q-time-val">0s</div>
+        <!-- Workspace content -->
+        <div class="workspace">
+
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="view-panel">
+
+                <!-- Loading State -->
+                <div id="loading" class="loading-overlay hidden">
+                    <div class="md-spinner"></div>
+                    <p>Executing Quantum Circuit...</p>
+                </div>
+
+                <div id="intro-placeholder">
+                    <div style="text-align:center; padding: 60px; color: var(--md-sys-color-secondary)">
+                        <span class="material-symbols-outlined"
+                            style="font-size: 64px; margin-bottom: 20px; opacity: 0.2">science</span>
+                        <h2>Ready to Experiment</h2>
+                        <p style="margin-top:10px">Configure parameters on the left and invoke the solver.</p>
                     </div>
                 </div>
 
-                <!-- Tabs -->
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="perf">📊 Performance</button>
-                    <button class="tab-btn" data-tab="graph">🕸️ Graphs</button>
-                    <button class="tab-btn" data-tab="land">🏔️ Landscape</button>
-                </div>
-
-                <div class="tab-content active" id="perf">
-                    <div id="plot-performance" class="plot-container"></div>
-                </div>
-
-                <div class="tab-content" id="graph">
-                    <div class="split-view">
-                        <div>
-                            <h4>Classical Partition</h4>
-                            <div id="plot-classical" class="plot-container"></div>
+                <div id="results-area" class="hidden">
+                    <!-- Metrics Row -->
+                    <div class="metrics-row">
+                        <div class="metric-card">
+                            <div class="metric-label">Best Cut (Classical)</div>
+                            <div class="metric-value" id="c-cost-val">-</div>
+                            <div class="metric-sub" id="c-time-val">-</div>
                         </div>
-                        <div>
-                            <h4>Quantum Partition</h4>
-                            <div id="plot-quantum" class="plot-container"></div>
+                        <div class="metric-card" style="background-color: var(--md-sys-color-primary-container)">
+                            <div class="metric-label" style="color: var(--md-sys-color-on-primary-container)">Best Cut
+                                (Quantum)</div>
+                            <div class="metric-value" id="q-cost-val"
+                                style="color: var(--md-sys-color-on-primary-container)">-</div>
+                            <div class="metric-sub" id="q-time-val"
+                                style="color: var(--md-sys-color-on-primary-container)">-</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Final State</div>
+                            <div class="metric-value" id="bitstring-val" style="font-size: 18px">|00000⟩</div>
+                        </div>
+                    </div>
+
+                    <!-- Visualizations -->
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div class="card">
+                            <h3>Quantum Partition</h3>
+                            <div id="plot-quantum" class="plot-wrapper"></div>
+                        </div>
+                        <div class="card">
+                            <h3>Performance & Landscape</h3>
+                            <div id="plot-performance" class="plot-wrapper" style="height: 200px; margin-bottom: 20px">
+                            </div>
+                            <div id="plot-landscape" class="plot-wrapper" style="height: 250px"></div>
                         </div>
                     </div>
                 </div>
-
-                <div class="tab-content" id="land">
-                    <div id="plot-landscape" class="plot-container"></div>
-                </div>
-            </div>
-            
-            <div id="intro-placeholder">
-                <div class="placeholder-content">
-                    <h3>Ready to Explore?</h3>
-                    <p>Configure the parameters on the left and click Run.</p>
-                </div>
             </div>
 
-        </main>
-    </div>
+            <!-- History Tab -->
+            <div id="history" class="view-panel hidden">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+                        <h3>Experiment History (from Firebase)</h3>
+                        <button id="refreshHistory" class="tab-btn" style="padding:0"><span
+                                class="material-symbols-outlined">refresh</span></button>
+                    </div>
+
+                    <ul id="historyList" class="history-list">
+                        <!-- Items injected here -->
+                        <li style="padding:20px; text-align:center; color: var(--md-sys-color-secondary)">Loading...
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Inline script for history specifically
+        const historyList = document.getElementById('historyList');
+        const refreshBtn = document.getElementById('refreshHistory');
+
+        async function fetchHistory() {
+            try {
+                historyList.innerHTML = '<li style="padding:20px; text-align:center">Loading data...</li>';
+                const res = await fetch('/history');
+                const data = await res.json();
+
+                historyList.innerHTML = '';
+                if (data.length === 0) {
+                    historyList.innerHTML = '<li style="padding:20px; text-align:center">No records found. Run a simulation first!</li>';
+                    return;
+                }
+
+                data.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'history-item';
+
+                    const date = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Just now';
+
+                    li.innerHTML = `
+                        <div class="history-meta">
+                            <span style="font-weight:500; font-size:16px">N=${item.actual_n} Graph</span>
+                            <span class="h-time">${date}</span>
+                        </div>
+                        <div class="h-res">
+                            C: ${item.classical_cost} | Q: ${item.quantum_cost} (|${item.bitstring}⟩)
+                        </div>
+                    `;
+                    historyList.appendChild(li);
+                });
+
+            } catch (e) {
+                historyList.innerHTML = `<li style="padding:20px; text-align:center; color:var(--md-sys-color-error)">Error loading history: ${e}</li>`;
+            }
+        }
+
+        refreshBtn.addEventListener('click', fetchHistory);
+
+        // Auto load on tab switch
+        document.querySelector('[data-tab="history"]').addEventListener('click', () => {
+            fetchHistory();
+        });
+    </script>
 </body>
+
 </html>

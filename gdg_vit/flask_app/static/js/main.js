@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // UI Interactions
-    const rangeInputs = ['p_prob', 'n_nodes'];
+    const rangeInputs = ['p_prob', 'n_nodes', 'num_layers'];
     rangeInputs.forEach(id => {
         const input = document.getElementById(id);
         const valSpan = document.getElementById(`${id}_val`);
@@ -25,16 +25,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tabs
     const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
+    const viewPanels = document.querySelectorAll('.view-panel');
 
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
+            // Only handle main nav tabs
+            if (!btn.dataset.tab) return;
+
             tabBtns.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
+            viewPanels.forEach(p => p.classList.add('hidden'));
 
             btn.classList.add('active');
             const tabId = btn.getAttribute('data-tab');
-            document.getElementById(tabId).classList.add('active');
+            const panel = document.getElementById(tabId);
+            if (panel) panel.classList.remove('hidden');
 
             // Resize plots if needed
             window.dispatchEvent(new Event('resize'));

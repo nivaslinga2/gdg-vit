@@ -173,14 +173,20 @@
                     <!-- Visualizations -->
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
                         <div class="card">
+                            <h3>Classical Partition</h3>
+                            <div id="plot-classical" class="plot-wrapper"></div>
+                        </div>
+                        <div class="card">
                             <h3>Quantum Partition</h3>
                             <div id="plot-quantum" class="plot-wrapper"></div>
                         </div>
-                        <div class="card">
-                            <h3>Performance & Landscape</h3>
-                            <div id="plot-performance" class="plot-wrapper" style="height: 200px; margin-bottom: 20px">
-                            </div>
-                            <div id="plot-landscape" class="plot-wrapper" style="height: 250px"></div>
+                    </div>
+
+                    <div class="card" style="margin-top: 24px">
+                        <h3>Performance & Landscape</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                            <div id="plot-performance" class="plot-wrapper" style="height: 300px"></div>
+                            <div id="plot-landscape" class="plot-wrapper" style="height: 300px"></div>
                         </div>
                     </div>
                 </div>
